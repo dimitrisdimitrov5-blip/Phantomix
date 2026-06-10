@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/app
+    restart: unless-stopped
+
+  telegram:
+    build: ./telegram
+    env_file:
+      - .env
+    environment:
+      - API_URL=http://backend:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+networks:
+  default:
+    name: phantomix-network

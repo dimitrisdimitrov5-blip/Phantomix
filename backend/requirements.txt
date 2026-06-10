@@ -1,0 +1,9 @@
+anthropic
+playwright
+python-telegram-bot
+fastapi
+uvicorn
+supabase
+python-dotenv
+aiohttp
+asyncio
