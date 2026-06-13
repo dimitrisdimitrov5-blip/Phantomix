@@ -3,13 +3,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from agent import run_agent
 from browser import BrowserController
-import asyncio
+from contextlib import asynccontextmanager
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-app = FastAPI(title="Phantomix API", version="1.0.0")
+browser = BrowserController()
+conversation_history = []
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await browser.start()
+    yield
+    await browser.stop()
+
+app = FastAPI(title="Phantomix API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -18,9 +27,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-browser = BrowserController()
-conversation_history = []
 
 class TaskRequest(BaseModel):
     task: str
@@ -35,14 +41,6 @@ class FillRequest(BaseModel):
     selector: str
     value: str
 
-@app.on_event("startup")
-async def startup():
-    await browser.start()
-
-@app.on_event("shutdown")
-async def shutdown():
-    await browser.stop()
-
 @app.get("/")
 async def root():
     return {"status": "Phantomix is running 🚀", "version": "1.0.0"}
@@ -51,10 +49,7 @@ async def root():
 async def run_task(request: TaskRequest):
     global conversation_history
     try:
-        reply, conversation_history = await run_agent(
-            request.task, 
-            conversation_history
-        )
+        reply, conversation_history = await run_agent(request.task, conversation_history)
         return {"status": "success", "result": reply}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -73,22 +68,6 @@ async def search(request: SearchRequest):
     try:
         results = await browser.search_google(request.query)
         return {"status": "success", "results": results}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/fill")
-async def fill(request: FillRequest):
-    try:
-        result = await browser.fill_input(request.selector, request.value)
-        return {"status": "success", "result": result}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/screenshot")
-async def screenshot():
-    try:
-        result = await browser.screenshot()
-        return {"status": "success", "result": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

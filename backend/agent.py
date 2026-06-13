@@ -21,7 +21,7 @@ async def run_agent(task: str, conversation_history: list = []):
     messages = conversation_history + [{"role": "user", "content": task}]
     
     response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-5",
         max_tokens=2048,
         system=SYSTEM_PROMPT,
         messages=messages
